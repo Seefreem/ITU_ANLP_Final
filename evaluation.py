@@ -1,131 +1,107 @@
 import os
-from transformers import AutoTokenizer, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import argparse
-import transformers
 from load_data import load_and_prepare_data
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-def initialize_huggingface_model(token, model_name="meta-llama/Llama-3.1-8B-Instruct"):
+def initialize_model(model_name, token):
 
     os.environ["HUGGING_FACE_TOKEN"] = token
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model_name,
-        model_kwargs={"torch_dtype": torch.bfloat16},
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
         device_map="auto",
-        token=token
+        torch_dtype=torch.bfloat16,
+        trust_remote_code=True
+    )
+    return tokenizer, model
+
+def generate_response(tokenizer, model, question, max_new_tokens=10):
+
+    inputs = tokenizer(question, return_tensors="pt").to(device)
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=max_new_tokens,
+        return_dict_in_generate=True,
+        output_scores=True
     )
 
-    return pipeline
+    generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
 
+    return generated_text
 
-def split_into_right_wrong(questions, evaluations):
-    correctly_answered = []
-    incorrectly_answered = []
+def evaluate_response(tokenizer, model, question, response, reference=None, max_new_tokens=10):
 
+    prompt = f"""
+    Evaluate the following response for correctness and relevance, answer with single word 'Yes' or 'No':
+    Question: {question}
+    Response: {response}
+    """
+    if reference:
+        prompt += f"\nReference Answer: {reference}"
+
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=max_new_tokens,
+        return_dict_in_generate=True,
+        output_scores=True
+    )
+
+    decoded_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+
+    return decoded_text.strip()
+
+def split_questions_by_evaluation(questions, evaluations):
+
+    correct = []
+    incorrect = []
     for question, evaluation in zip(questions, evaluations):
-        first_word = evaluation.split()[0].lower()
-        if 'yes' in first_word:
-            correctly_answered.append(question)
-        elif 'no' in first_word:
-            incorrectly_answered.append(question)
+        if evaluation.strip().lower().startswith('yes'):
+            correct.append(question)
         else:
-            incorrectly_answered.append(question)
+            incorrect.append(question)
+    return correct, incorrect
 
-    return correctly_answered, incorrectly_answered
-
-
-
-def generate_answers_with_huggingface(pipeline, questions):
-
-    responses = []
-    for question in questions:
-
-        outputs = pipeline(
-            question,
-            max_new_tokens=10,
-            return_full_text=False,
-            num_return_sequences=1,
-        )
-
-        responses.append(outputs[0]['generated_text'])
-
-        print(f"Question: {question}")
-        print(f"Answer: {outputs[0]['generated_text']}")
-        print("-" * 30)
-    return responses
-
-# Evaluate answers using the second model
-def evaluate_responses_with_huggingface(pipeline, questions, responses, references=None):
-    evaluations = []
-
-    for i, (question, response) in enumerate(zip(questions, responses)):
-        prompt = f"""
-        Evaluate the following response for correctness and relevance, answer with single word 'Yes' or 'No':
-
-        Question: {question}
-        Response: {response}
-        """
-        if references:
-            prompt += f"\nReference Answer: {references[i]}"
-
-
-
-        # Generate the evaluation
-        outputs = pipeline(
-            prompt,
-            max_new_tokens=25,
-            num_return_sequences=1,
-        )
-
-        evaluations.append(outputs[0]['generated_text'])
-
-
-    return evaluations
-
-
-# Main function
-def evaluate_model(access_token):
-
+def main(access_token, model_name):
     # Load and prepare data
     questions, references = load_and_prepare_data()
 
     # Initialize models
-    answer_generator_model = initialize_huggingface_model(access_token, model_name=model_name)
-    evaluator_model = initialize_huggingface_model(access_token, model_name=model_name)
+    tokenizer, model = initialize_model(model_name, access_token)
 
-    # Generate responses
-    responses = generate_answers_with_huggingface(answer_generator_model,  questions)
+    # Generate and evaluate responses
+    responses = []
+    evaluations = []
 
-    # Evaluate responses
-    evaluations = evaluate_responses_with_huggingface(
-        pipeline=evaluator_model,
-        questions=questions,
-        responses=responses,
-        references=references
-    )
+    for i, question in enumerate(questions):
+        # Generate a response
+        response = generate_response(tokenizer, model, question)
+        responses.append(response)
 
+        # Evaluate the response
+        reference = references[i] if references else None
+        evaluation = evaluate_response(tokenizer, model, question, response, reference=reference)
+        evaluations.append(evaluation)
 
-    correct, incorrect = split_into_right_wrong(questions, evaluations)
+        #print(f"Question {i+1}: {question}")
+        #print(f"Response: {response}")
+        #print(f"Evaluation: {evaluation})")
+        #print("-" * 30)
 
-    print("Correctly Answered Questions: ", correct)
-    print("Incorrectly Answered Questions: ", incorrect)
+    # Split questions by evaluation
+    correct, incorrect = split_questions_by_evaluation(questions, evaluations)
 
-
-
+    # Display results
+    print("Correctly Answered Questions:", correct)
+    print("Incorrectly Answered Questions:", incorrect)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--token", type=str, required=True)
-    parser.add_argument("--model_evaluator", type=str, required=True)
-    parser.add_argument("--model_generator", type=str, required=False)
+    parser.add_argument("--model", type=str, required=True)
     args = parser.parse_args()
-    model_name = args.model_evaluator
-    access_token = args.token
-    evaluate_model(access_token)
-
-
-#TODO: Run evaluation pipeline on HPC
-#TODO: Use batches for efficiency
+    main(args.token, args.model)
