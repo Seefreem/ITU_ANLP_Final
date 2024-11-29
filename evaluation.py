@@ -4,6 +4,7 @@ import torch
 import argparse
 from load_data import load_and_prepare_data
 
+
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 def initialize_model(model_name, token):
@@ -14,11 +15,13 @@ def initialize_model(model_name, token):
         model_name,
         device_map="auto",
         torch_dtype=torch.bfloat16,
-        trust_remote_code=True
+        trust_remote_code=True,
+        eos_token_id = tokenizer.eos_token_id,
+        pad_token_id = tokenizer.pad_token_id
     )
     return tokenizer, model
 
-def generate_response(tokenizer, model, question, max_new_tokens=10):
+def generate_response(tokenizer, model, question, max_new_tokens=6):
 
     inputs = tokenizer(question, return_tensors="pt").to(device)
     outputs = model.generate(
@@ -29,18 +32,21 @@ def generate_response(tokenizer, model, question, max_new_tokens=10):
     )
 
     generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+    generated_response = generated_text.split(question, 1)[-1].strip()
 
-    return generated_text
+    return generated_response
 
-def evaluate_response(tokenizer, model, question, response, reference=None, max_new_tokens=10):
-
+def evaluate_response(tokenizer, model, question, response, reference=None, max_new_tokens=4):
     prompt = f"""
-    Evaluate the following response for correctness and relevance, answer with single word 'Yes' or 'No':
+    You are tasked with evaluating the response for its correctness and relevance to the given question. Answer with a single word: 'Yes' if the response is correct and relevant, or 'No' otherwise. Do not provide any additional explanation.
+
     Question: {question}
     Response: {response}
     """
     if reference:
-        prompt += f"\nReference Answer: {reference}"
+        prompt += f"\nCorrect Answer: {reference}"
+
+    prompt += "\nYour evaluation:"
 
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     outputs = model.generate(
@@ -51,8 +57,9 @@ def evaluate_response(tokenizer, model, question, response, reference=None, max_
     )
 
     decoded_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+    evaluation_result = decoded_text.strip().split("Your evaluation:")[-1].strip()
 
-    return decoded_text.strip()
+    return evaluation_result
 
 def split_questions_by_evaluation(questions, evaluations):
 
@@ -66,6 +73,7 @@ def split_questions_by_evaluation(questions, evaluations):
     return correct, incorrect
 
 def main(access_token, model_name):
+
     # Load and prepare data
     questions, references = load_and_prepare_data()
 
@@ -86,10 +94,10 @@ def main(access_token, model_name):
         evaluation = evaluate_response(tokenizer, model, question, response, reference=reference)
         evaluations.append(evaluation)
 
-        #print(f"Question {i+1}: {question}")
-        #print(f"Response: {response}")
-        #print(f"Evaluation: {evaluation})")
-        #print("-" * 30)
+        print(f"Question {i+1}: {question}")
+        print(f"Response: {response}")
+        print(f"Evaluation: {evaluation})")
+        print("-" * 30)
 
     # Split questions by evaluation
     correct, incorrect = split_questions_by_evaluation(questions, evaluations)
