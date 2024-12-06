@@ -2,7 +2,6 @@
 import json
 import os
 import deeplake
-
 def load_and_prepare_data(link='hub://activeloop/squad-val'):
     ds = deeplake.load(link)
     dataloader = ds.pytorch(num_workers=0, batch_size=4, shuffle=True)
