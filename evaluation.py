@@ -2,7 +2,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import argparse
-from load_data import load_and_prepare_data
+from load_data import load_and_prepare_data, create_csv
 
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -21,20 +21,36 @@ def initialize_model(model_name, token):
     )
     return tokenizer, model
 
-def generate_response(tokenizer, model, question, max_new_tokens=6):
 
+def generate_response(tokenizer, model, question, max_new_tokens=6, layer_step=5):
+
+    # Tokenize the input question and feed them into the model
     inputs = tokenizer(question, return_tensors="pt").to(device)
+
     outputs = model.generate(
         **inputs,
         max_new_tokens=max_new_tokens,
         return_dict_in_generate=True,
-        output_scores=True
+        output_scores=True,
+        output_hidden_states=True
     )
 
+    # Extract hidden states of every 4th layer - 0, 4, 8, 12, 16 and etc.
+    hidden_states = []
+    total_layers = len(outputs.hidden_states)
+
+
+    for i in range(0, total_layers, layer_step):  # Take every 4th layer
+        hidden_state = outputs.hidden_states[1][i].mean(dim=1)
+        hidden_states.append(hidden_state.squeeze().tolist())
+
+
+    # Decode the generated sequence
     generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
     generated_response = generated_text.split(question, 1)[-1].strip()
 
-    return generated_response
+    return generated_response, hidden_states
+
 
 def evaluate_response(tokenizer, model, question, response, reference=None, max_new_tokens=4):
     prompt = f"""
@@ -75,36 +91,48 @@ def split_questions_by_evaluation(questions, evaluations):
 def main(access_token, model_name):
 
     # Load and prepare data
-    questions, references = load_and_prepare_data()
+    ids, questions, references = load_and_prepare_data("data/natural_questions_sample.csv")
 
     # Initialize models
     tokenizer, model = initialize_model(model_name, access_token)
 
     # Generate and evaluate responses
     responses = []
-    evaluations = []
+    #evaluations = []
+    hidden_states = []
 
     for i, question in enumerate(questions):
         # Generate a response
-        response = generate_response(tokenizer, model, question)
+        response, states  = generate_response(tokenizer, model, question)
         responses.append(response)
+        hidden_states.append(states)
+        print(f"Question {i+1}: {question}")
+
+
+
+    # Create a CSV file with the data
+    create_csv(ids, questions, references, responses, hidden_states)
 
         # Evaluate the response
-        reference = references[i] if references else None
-        evaluation = evaluate_response(tokenizer, model, question, response, reference=reference)
-        evaluations.append(evaluation)
+        #reference = references[i] if references else None
+        #evaluation = evaluate_response(tokenizer, model, question, response, reference=reference)
+        #evaluations.append(evaluation)
 
-        print(f"Question {i+1}: {question}")
-        print(f"Response: {response}")
-        print(f"Evaluation: {evaluation})")
-        print("-" * 30)
 
+        #print(f"Question {i+1}: {question}")
+        #print(f"Response: {response}")
+        #print(f"Evaluation: {evaluation})")
+        #print("-" * 30)
+
+
+
+    # Evaluate the responses with CHATGPT
     # Split questions by evaluation
-    correct, incorrect = split_questions_by_evaluation(questions, evaluations)
+    #correct, incorrect = split_questions_by_evaluation(questions, evaluations)
 
     # Display results
-    print("Correctly Answered Questions:", correct)
-    print("Incorrectly Answered Questions:", incorrect)
+    #print("Correctly Answered Questions:", correct)
+    #print("Incorrectly Answered Questions:", incorrect)
 
 
 if __name__ == "__main__":

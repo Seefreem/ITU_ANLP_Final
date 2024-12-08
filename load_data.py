@@ -1,26 +1,40 @@
 
 import json
 import os
-import deeplake
-def load_and_prepare_data(link='hub://activeloop/squad-val'):
-    ds = deeplake.load(link)
-    dataloader = ds.pytorch(num_workers=0, batch_size=4, shuffle=True)
+import csv
+import pandas as pd
+def load_and_prepare_data(file_path): # assume it is csv data # Create empty lists to store the extracted data
+    ids = []
     questions = []
-    references = []
-    answers = []
+    short_answers = []
 
-    # Iterate through the dataloader batches
-    for batch in dataloader:
-        for i in range(len(batch['question'])):
-            questions.append(batch['question'][i])
-            references.append(batch['context'][i])
-            answers.append(batch['text'][i])
-        if len(questions) >= 12:  # For demonstation purposes, stop after 40 questions
-            break
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
 
-    return questions, answers
+        # Iterate over the rows and append each relevant field to the lists
+        for row in reader:
+            ids.append(row['ID'])
+            questions.append(row['question'])
+            short_answers.append(row['short_answers'])
+
+    return ids, questions, short_answers
 
 
-# https://datasets.activeloop.ai/docs/ml/datasets/squad-dataset/ - SQuAD dataset loading and preparation
-# I am not sure if it is the best way to extract the data from this dataset, but it worked for me.
-# I am not sure how to use batches to efficiently load data
+
+def create_csv(ids, questions, short_answers, responses, hidden_states):
+    # dictionary of lists
+    dict = {'IDs': ids, 'questions': questions, 'short_answers': short_answers, 'responses': responses}
+
+    size = len(hidden_states[0])
+
+    for i in range(size):
+        dict[f'hidden_state_{i}'] = [states[i] for states in hidden_states]
+
+    print(dict)
+
+    df = pd.DataFrame(dict)
+
+    # saving the dataframe
+    df.to_csv('dataset.csv')
+
+
