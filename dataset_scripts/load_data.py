@@ -19,6 +19,22 @@ def load_and_prepare_data(file_path): # assume it is csv data # Create empty lis
 
     return ids, questions, short_answers
 
+def load_and_prepare_data(file_path): # assume it is csv data # Create empty lists to store the extracted data
+    ids = []
+    questions = []
+    short_answers = []
+
+    with open(file_path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+
+        # Iterate over the rows and append each relevant field to the lists
+        for row in reader:
+            ids.append(row['ID'])
+            questions.append(row['question'])
+            short_answers.append(row['short_answers'])
+
+    return ids, questions, short_answers
+
 
 
 def create_csv(ids, questions, short_answers, responses, hidden_states):
