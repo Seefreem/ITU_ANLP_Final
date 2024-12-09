@@ -1,15 +1,16 @@
 import torch
-from model_utils import load_model_and_tokenizer, extract_hidden_states
+from model_utils import load_model_and_tokenizer, extract_hidden_states, split_data
 from saplma_model import SaplmaClassifier, train_classifier
+from dataset_scripts.load_data import extract_hidden_states_with_labels
 from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
 import argparse
 
 
 
-def main(access_token, model_name, dataset_file):
+def main(access_token, model_name, hidden_states_file, labels_file):
     # Load data
-    hidden_states, labels = load_hiddens_states_labels(dataset_file) # TODO: Ask chatgpt to label data, if short_answer matches response, label is 1, else 0
+    hidden_states, labels = extract_hidden_states_with_labels(hidden_states_file,labels_file) # TODO: Ask chatgpt to label data, if short_answer matches response, label is 1, else 0
 
     input_size = len(hidden_states[0])
     classifier = SaplmaClassifier(input_size).to(device)
@@ -18,7 +19,7 @@ def main(access_token, model_name, dataset_file):
 
     X_train, X_test, y_train, y_test = split_data(hidden_states, labels) # TODO: Implement split_data
     train_dataset = TensorDataset(X_train, y_train)
-    test_dataset = TensorDataset(X_test, y_test)
+    #test_dataset = TensorDataset(X_test, y_test)
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
     #test_loader = DataLoader(test_dataset, batch_size=8)
 

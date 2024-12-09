@@ -49,4 +49,23 @@ def create_csv(questions, short_answers, responses, hidden_states):
     # saving the dataframe
     df.to_csv('dataset_training.csv')
 
+def extract_hidden_states_with_labels(hidden_states_file, labels_file):
+
+    labels = []
+    with open(labels_file, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            labels.append(row['matches'])
+
+    hidden_states = []
+
+    with open(hidden_states_file, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            hidden_states.append(row[f'hidden_state_{16}'])
+
+    return hidden_states, labels
+
+
+
 
