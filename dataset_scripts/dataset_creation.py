@@ -37,17 +37,15 @@ def generate_response(tokenizer, model, question, max_new_tokens=6, layer_step=5
 
     # Extract hidden states of every 4th layer - 0, 4, 8, 12, 16 and etc.
     hidden_states = []
-    total_layers = len(outputs.hidden_states) #16 - 20 - 24 - 28 - 32
+    total_layers = len(outputs.hidden_states[1]) #16 - 20 - 24 - 28 - 32
 
-    print(f"Total layers: {total_layers}")
 
+    #for i in range(0, total_layers, layer_step):
+        #hidden_state = outputs.hidden_states[1][i+1].mean(dim=1)
+        #hidden_states.append(hidden_state.squeeze().tolist())
 
     hidden_state = outputs.hidden_states[1][16].mean(dim=1)
     hidden_states.append(hidden_state.squeeze().tolist())
-    hidden_state = outputs.hidden_states[1][20].mean(dim=1)
-    hidden_states.append(hidden_state.squeeze().tolist())
-
-
 
     # Decode the generated sequence
     generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
@@ -56,10 +54,10 @@ def generate_response(tokenizer, model, question, max_new_tokens=6, layer_step=5
     return generated_response, hidden_states
 
 
-def main(access_token, model_name):
+def main(access_token, model_name,file_path):
 
     # Load and prepare data
-    ids, questions, references = load_and_prepare_data("../data/natural_questions_sample.csv")
+    questions, references = load_and_prepare_data(file_path)
 
     # Initialize models
     tokenizer, model = initialize_model(model_name, access_token)
@@ -74,15 +72,18 @@ def main(access_token, model_name):
         responses.append(response)
         hidden_states.append(states)
         print(f"Question {i+1}: {question}")
+        if i == 99:
+            break
 
 
     # Create a CSV file with the data
-    create_csv(ids, questions, references, responses, hidden_states)
+    create_csv(questions, references, responses, hidden_states)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--token", type=str, required=True)
     parser.add_argument("--model", type=str, required=True)
+    parser.add_argument("--filepath", type=str, required=True)
     args = parser.parse_args()
-    main(args.token, args.model)
+    main(args.token, args.model, args.filepath)
