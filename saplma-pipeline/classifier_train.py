@@ -8,7 +8,7 @@ import argparse
 
 
 
-def main(access_token, model_name, hidden_states_file, labels_file):
+def main( hidden_states_file, labels_file):
     # Load data
     hidden_states, labels = extract_hidden_states_with_labels(hidden_states_file,labels_file) # TODO: Ask chatgpt to label data, if short_answer matches response, label is 1, else 0
 
@@ -30,15 +30,12 @@ def main(access_token, model_name, hidden_states_file, labels_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--token", type=str, required=True)
-    parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--hidden_states_path", type=str, required=True)
     parser.add_argument("--labels_file", type=str, required=True)
     args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    model_name = args.model #"PY007/TinyLlama-1.1B-step-50K-105b"
     hidden_states = args.hidden_states_path
     labels = args.labels_file
 
-    main(args.token, args.model, hidden_states, labels)
+    main(hidden_states, labels)

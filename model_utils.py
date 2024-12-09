@@ -1,5 +1,7 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 def load_model_and_tokenizer(model_name, device):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -17,10 +19,15 @@ def extract_hidden_states(model, inputs, layer_index):
 
 
 def split_data(hidden_states, labels, test_size=0.2, random_state=42):
-    from sklearn.model_selection import train_test_split
+    hidden_states = np.array(hidden_states, dtype=np.float32)
+    labels = np.array(labels, dtype=np.float32)
+
+    # Split data
     X_train, X_test, y_train, y_test = train_test_split(
-        hidden_states.numpy(), labels, test_size=test_size, random_state=random_state
+        hidden_states, labels, test_size=test_size, random_state=random_state
     )
+
+    # Convert to PyTorch tensors
     return (
         torch.tensor(X_train, dtype=torch.float32),
         torch.tensor(X_test, dtype=torch.float32),
