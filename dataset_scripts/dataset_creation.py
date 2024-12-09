@@ -72,9 +72,6 @@ def main(access_token, model_name,file_path):
         responses.append(response)
         hidden_states.append(states)
         print(f"Question {i+1}: {question}")
-        if i == 99:
-            break
-
 
     # Create a CSV file with the data
     create_csv(questions, references, responses, hidden_states)
