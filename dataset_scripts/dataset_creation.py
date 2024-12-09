@@ -2,7 +2,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import argparse
-from dataset_scripts.load_data import load_and_prepare_data, create_csv
+from load_data import load_and_prepare_data, create_csv
 
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -70,8 +70,6 @@ def main(access_token, model_name):
         responses.append(response)
         hidden_states.append(states)
         print(f"Question {i+1}: {question}")
-        if i == 200:
-            break
 
 
     # Create a CSV file with the data

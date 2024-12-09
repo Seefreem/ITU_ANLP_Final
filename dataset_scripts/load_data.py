@@ -46,7 +46,6 @@ def create_csv(ids, questions, short_answers, responses, hidden_states):
     for i in range(size):
         dict[f'hidden_state_{i}'] = [states[i] for states in hidden_states]
 
-    print(dict)
 
     df = pd.DataFrame(dict)
 
