@@ -37,12 +37,16 @@ def generate_response(tokenizer, model, question, max_new_tokens=6, layer_step=5
 
     # Extract hidden states of every 4th layer - 0, 4, 8, 12, 16 and etc.
     hidden_states = []
-    total_layers = len(outputs.hidden_states)
+    total_layers = len(outputs.hidden_states) #16 - 20 - 24 - 28 - 32
+
+    print(f"Total layers: {total_layers}")
 
 
-    for i in range(0, total_layers, layer_step):  # Take every 4th layer
-        hidden_state = outputs.hidden_states[1][i].mean(dim=1)
-        hidden_states.append(hidden_state.squeeze().tolist())
+    hidden_state = outputs.hidden_states[1][16].mean(dim=1)
+    hidden_states.append(hidden_state.squeeze().tolist())
+    hidden_state = outputs.hidden_states[1][20].mean(dim=1)
+    hidden_states.append(hidden_state.squeeze().tolist())
+
 
 
     # Decode the generated sequence
