@@ -2,7 +2,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import argparse
-from load_data import load_and_prepare_data, create_csv
+from dataset_scripts.load_data import load_and_prepare_data, create_csv
 
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -51,7 +51,7 @@ def generate_response(tokenizer, model, question, max_new_tokens=6, layer_step=5
     generated_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
     generated_response = generated_text.split(question, 1)[-1].strip()
 
-    return generated_response, hidden_states
+    return generated_response, hidden_states, outputs
 
 
 def main(access_token, model_name,file_path):
@@ -68,7 +68,7 @@ def main(access_token, model_name,file_path):
 
     for i, question in enumerate(questions):
         # Generate a response
-        response, states  = generate_response(tokenizer, model, question)
+        response, states, _  = generate_response(tokenizer, model, question)
         responses.append(response)
         hidden_states.append(states)
         print(f"Question {i+1}: {question}")
