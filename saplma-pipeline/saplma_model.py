@@ -38,4 +38,29 @@ def train_classifier(classifier, train_loader, optimizer, criterion, epochs=5, d
             optimizer.step()
         print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
 
+def evaluate_classifier(classifier, test_loader, device="cpu"):
+    classifier.eval()
+    y_true = []
+    y_pred = []
+    with torch.no_grad():
+        for batch in test_loader:
+            X_batch, y_batch = batch
+            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+            outputs = classifier(X_batch)
+            y_true.append(y_batch)
+            y_pred.append(outputs)
+
+    y_true = torch.cat(y_true)
+    y_pred = torch.cat(y_pred)
+
+    y_pred = y_pred > 0.5
+    y_pred = y_pred.flatten()
+    correct_predictions = (y_pred == y_true).sum()
+
+    accuracy = correct_predictions / len(y_true)
+
+    print(f"Accuracy: {accuracy}")
+    return accuracy
+
+
 
