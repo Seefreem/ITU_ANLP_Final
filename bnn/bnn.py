@@ -5,7 +5,7 @@ import torch
 from sklearn.metrics import accuracy_score
 
 
-variational_estimator
+@variational_estimator
 class BayesianSAPLMA(nn.Module):
     def __init__(self, input_size):
         super(BayesianSAPLMA, self).__init__()
