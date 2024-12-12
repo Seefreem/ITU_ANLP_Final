@@ -45,7 +45,7 @@ def create_csv(questions, short_answers, responses, hidden_states, logits_of_ans
         os.makedirs(data_folder)
 
     # dictionary of lists
-    dict = {'questions': questions[:10], 'short_answers': short_answers[:10], 'responses': responses[:10]}
+    dict = {'questions': questions, 'short_answers': short_answers, 'responses': responses}
 
     df_chatgpt4 = pd.DataFrame(dict)
     df_chatgpt4.to_csv(os.path.join(data_folder, 'chatgpt4_evaluation.csv'))
@@ -56,8 +56,8 @@ def create_csv(questions, short_answers, responses, hidden_states, logits_of_ans
     # saving the dataframe
     df.to_csv( os.path.join(data_folder, 'dataset_hidden_layers.csv'))
 
-    dict1 = {'questions': questions[:10], 'short_answers': short_answers[:10], 'responses': responses[:10],
-             'logits_of_answers': logits_of_answers[:10]}
+    dict1 = {'questions': questions, 'short_answers': short_answers, 'responses': responses,
+             'logits_of_answers': logits_of_answers}
     df_logits = pd.DataFrame(dict1)
     df_logits.to_csv(os.path.join(data_folder, 'dataset_logits.csv'))
 
