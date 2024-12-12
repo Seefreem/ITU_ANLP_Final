@@ -23,7 +23,7 @@ class BayesianSAPLMA(nn.Module):
 
     def forward(self, x):
         return self.network(x)
-def train_classifier(classifier, train_loader, optimizer, criterion, epochs=5, device="cuda"):
+def train_classifier_bnn(classifier, train_loader, optimizer, criterion, epochs=5, device="cuda"):
     classifier.train()
 
 
@@ -44,7 +44,7 @@ def train_classifier(classifier, train_loader, optimizer, criterion, epochs=5, d
         print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
 
 
-def evaluate_classifier(classifier, test_loader, criterion, device="cuda", num_samples=10):
+def evaluate_classifier_bnn(classifier, test_loader, criterion, device="cuda", num_samples=10):
     classifier.eval() 
     total_loss = 0.0
     all_predictions = []
