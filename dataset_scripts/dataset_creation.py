@@ -69,16 +69,30 @@ def main(access_token, model_name,file_path):
     # Generate and evaluate responses
     responses = []
     hidden_states = []
+    logits_of_answers = []
 
     for i, question in enumerate(questions):
+
         # Generate a response
-        response, states, _  = generate_response(tokenizer, model, question)
+        response, states, outputs = generate_response(tokenizer, model, question)
         responses.append(response)
         hidden_states.append(states)
+
+        # logits extraction
+        question_length = len(tokenizer(question)['input_ids'])
+        logits = torch.nn.functional.softmax(torch.cat(outputs.scores,0), dim=1)
+        average_probability = 0
+
+        for j in range(len(outputs[0][0][question_length:])):
+            average_probability += logits[j, outputs[0][0][question_length:][j]]
+        average_probability /= 6
+        logits_of_answers.append(average_probability.item())
+
+        # Print the question
         print(f"Question {i+1}: {question} {response}; GT: {references[i]}")
 
     # Create a CSV file with the data
-    create_csv(questions, references, responses, hidden_states)
+    create_csv(questions, references, responses, hidden_states, logits_of_answers)
 
 
 if __name__ == "__main__":

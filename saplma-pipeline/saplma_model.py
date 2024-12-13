@@ -24,7 +24,7 @@ class SaplmaClassifier(nn.Module):
 
 
 
-def train_classifier(classifier, train_loader, optimizer, criterion, epochs=5, device="cpu"):
+def train_classifier_saplma(classifier, train_loader, optimizer, criterion, epochs=5, device="cpu"):
     classifier.train()
     for epoch in range(epochs):
         for batch in train_loader:
@@ -38,7 +38,7 @@ def train_classifier(classifier, train_loader, optimizer, criterion, epochs=5, d
             optimizer.step()
         print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item()}")
 
-def evaluate_classifier(classifier, test_loader, device="cpu"):
+def evaluate_classifier_saplma(classifier, test_loader, device="cpu"):
     classifier.eval()
     y_true = []
     y_pred = []

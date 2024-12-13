@@ -39,7 +39,7 @@ def main(access_token, model_name,file_path):
         logits_of_answers.append(average_probability.item())
 
     dict = {'questions': questions, 'short_answers': references, 
-            'responses': responses, 'logits_of_answers': logits_of_answers}
+            'responses': responses, 'logits_of_answers': logits_of_answers} # load_data.py create_csv!!!!!
     # Create a CSV file with the data
     df = pd.DataFrame(dict)
     # saving the dataframe
