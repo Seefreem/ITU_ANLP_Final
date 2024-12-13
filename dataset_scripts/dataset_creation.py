@@ -2,7 +2,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import argparse
-from dataset_scripts.load_data import load_and_prepare_data, create_csv
+from load_data import load_and_prepare_data, create_csv
 
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -32,7 +32,8 @@ def generate_response(tokenizer, model, question, max_new_tokens=6, layer_step=5
         max_new_tokens=max_new_tokens,
         return_dict_in_generate=True,
         output_scores=True,
-        output_hidden_states=True
+        output_hidden_states=True,
+        pad_token_id=tokenizer.eos_token_id
     )
 
     # Extract hidden states of every 4th layer - 0, 4, 8, 12, 16 and etc.
@@ -61,7 +62,10 @@ def main(access_token, model_name,file_path):
 
     # Initialize models
     tokenizer, model = initialize_model(model_name, access_token)
-
+    length_set = set()
+    for i in references:
+        length_set.add(len(tokenizer.tokenize(i)))
+    print(length_set, max(length_set))
     # Generate and evaluate responses
     responses = []
     hidden_states = []
@@ -71,7 +75,7 @@ def main(access_token, model_name,file_path):
         response, states, _  = generate_response(tokenizer, model, question)
         responses.append(response)
         hidden_states.append(states)
-        print(f"Question {i+1}: {question}")
+        print(f"Question {i+1}: {question} {response}; GT: {references[i]}")
 
     # Create a CSV file with the data
     create_csv(questions, references, responses, hidden_states)
