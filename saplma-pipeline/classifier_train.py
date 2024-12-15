@@ -25,13 +25,13 @@ def main( hidden_states_file, labels_file, arc):
         print("Invalid architecture")
         return "Invalid architecture"
     criterion = nn.BCELoss()
-    optimizer = torch.optim.Adam(classifier.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(classifier.parameters(), lr=0.00001)
 
     X_train, X_test, y_train, y_test = split_data(hidden_states, labels)
     train_dataset = TensorDataset(X_train, y_train)
     test_dataset = TensorDataset(X_test, y_test)
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=8)
+    train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=256)
 
     if arc == "bnn":
         train_classifier_bnn(classifier, train_loader, optimizer, criterion, epochs=5, device=device)

@@ -24,7 +24,7 @@ class SaplmaClassifier(nn.Module):
 
 
 
-def train_classifier_saplma(classifier, train_loader, optimizer, criterion, epochs=5, device="cpu"):
+def train_classifier_saplma(classifier, train_loader, optimizer, criterion, epochs=30, device="cpu"):
     classifier.train()
     for epoch in range(epochs):
         for batch in train_loader:
